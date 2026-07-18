@@ -12,4 +12,8 @@ urlpatterns = [
     path('dm/<int:user_pk>/', views.dm_view, name='dm'),
     path('call/<int:user_pk>/', views.start_call, name='start_call'),
     path('room/<uuid:room_id>/', views.call_room, name='call_room'),
+    path('schedule/', views.schedule_list, name='schedule_list'),
+    path('schedule/create/', views.schedule_create, name='schedule_create'),
+    path('schedule/<uuid:token>/', views.schedule_detail, name='schedule_detail'),
+    path('schedule/join/<uuid:token>/', views.schedule_join, name='schedule_join'),
 ]

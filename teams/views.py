@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Max
 from django.utils import timezone
-from .models import Team, TeamMember, Channel, Message, DirectMessage, CallSession
+from .models import Team, TeamMember, Channel, Message, DirectMessage, CallSession, ScheduledMeeting
 from accounts.models import User, Invitation
 from accounts.forms import InviteForm
 import uuid
@@ -114,6 +114,57 @@ def start_call(request, user_pk):
     )
     session.participants.add(request.user, other)
     return redirect('teams:call_room', room_id=session.room_id)
+
+
+@login_required
+def schedule_list(request):
+    meetings = ScheduledMeeting.objects.filter(created_by=request.user).order_by('scheduled_at')
+    return render(request, 'teams/schedule_list.html', {'meetings': meetings})
+
+
+@login_required
+def schedule_create(request):
+    teams = request.user.teams.all()
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        scheduled_at = request.POST.get('scheduled_at', '').strip()
+        call_type = request.POST.get('call_type', 'video')
+        team_id = request.POST.get('team_id') or None
+        if title and scheduled_at:
+            team = Team.objects.get(pk=team_id) if team_id else None
+            meeting = ScheduledMeeting.objects.create(
+                title=title,
+                description=description,
+                scheduled_at=scheduled_at,
+                call_type=call_type,
+                created_by=request.user,
+                team=team,
+            )
+            return redirect('teams:schedule_detail', token=meeting.token)
+    return render(request, 'teams/schedule_create.html', {'teams': teams})
+
+
+@login_required
+def schedule_detail(request, token):
+    meeting = get_object_or_404(ScheduledMeeting, token=token)
+    invite_url = request.build_absolute_uri(f'/teams/schedule/join/{meeting.token}/')
+    return render(request, 'teams/schedule_detail.html', {'meeting': meeting, 'invite_url': invite_url})
+
+
+def schedule_join(request, token):
+    meeting = get_object_or_404(ScheduledMeeting, token=token)
+    if not request.user.is_authenticated:
+        request.session['join_meeting'] = str(token)
+        return redirect(f'/accounts/login/?next=/teams/schedule/join/{token}/')
+    session = CallSession.objects.create(
+        room_id=meeting.room_id,
+        call_type=meeting.call_type,
+        initiator=request.user,
+        status=CallSession.STATUS_ACTIVE,
+    )
+    session.participants.add(request.user)
+    return redirect('teams:call_room', room_id=meeting.room_id)
 
 
 @login_required

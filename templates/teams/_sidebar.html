@@ -30,6 +30,18 @@
 
   <hr class="divider">
 
+  <div class="sidebar-section">
+    <div class="sidebar-header">Scheduling</div>
+    <a href="{% url 'teams:schedule_list' %}" class="sidebar-item {% if request.path == '/teams/schedule/' %}active{% endif %}">
+      <i class="fas fa-calendar-alt"></i> <span>Meetings</span>
+    </a>
+    <a href="{% url 'teams:schedule_create' %}" class="sidebar-item">
+      <i class="fas fa-calendar-plus"></i> <span>New Meeting</span>
+    </a>
+  </div>
+
+  <hr class="divider">
+
   <div class="sidebar-section" style="margin-top:auto;">
     <a href="{% url 'accounts:profile' %}" class="sidebar-item">
       {% if request.user.avatar %}<img src="{{ request.user.avatar.url }}" class="avatar">

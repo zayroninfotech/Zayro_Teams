@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}{{ meeting.title }} — Zayro Teams{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include 'teams/_sidebar.html' %}
+  <div class="main-content">
+    <div class="content-header">
+      <i class="fas fa-calendar-check" style="color:var(--accent)"></i>
+      <h2>{{ meeting.title }}</h2>
+      <div style="margin-left:auto;">
+        <a href="{% url 'teams:schedule_list' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+      </div>
+    </div>
+    <div class="content-body" style="max-width:620px;">
+
+      <!-- Meeting Info -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:4px;">Date & Time</div>
+            <div style="color:var(--white);font-size:1rem;font-weight:600;">{{ meeting.scheduled_at|date:"D, d M Y" }}</div>
+            <div style="color:var(--accent);font-size:.9rem;">{{ meeting.scheduled_at|date:"H:i" }}</div>
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:4px;">Type</div>
+            <div style="color:var(--white);">
+              {% if meeting.call_type == 'video' %}
+              <i class="fas fa-video" style="color:var(--green)"></i> Video Call
+              {% else %}
+              <i class="fas fa-phone" style="color:var(--accent)"></i> Audio Call
+              {% endif %}
+            </div>
+          </div>
+          {% if meeting.team %}
+          <div style="flex:1;min-width:200px;">
+            <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:4px;">Team</div>
+            <div style="color:var(--white);"><i class="fas fa-users" style="color:var(--accent)"></i> {{ meeting.team.name }}</div>
+          </div>
+          {% endif %}
+          <div style="flex:1;min-width:200px;">
+            <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:4px;">Created by</div>
+            <div style="color:var(--white);">{{ meeting.created_by.display_name }}</div>
+          </div>
+        </div>
+        {% if meeting.description %}
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);font-size:.9rem;">
+          {{ meeting.description }}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Invite Link -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-link" style="color:var(--accent)"></i> Invite Link
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="invite-url" value="{{ invite_url }}" readonly
+            style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;padding:10px 12px;color:var(--text);font-size:.85rem;outline:none;">
+          <button onclick="copyLink()" class="btn btn-primary" id="copy-btn">
+            <i class="fas fa-copy"></i> Copy
+          </button>
+        </div>
+        <div style="margin-top:10px;font-size:.8rem;color:var(--muted);">
+          <i class="fas fa-info-circle"></i> Share this link with anyone you want to invite to the meeting.
+        </div>
+      </div>
+
+      <!-- Share options -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Share via</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="https://wa.me/?text={{ meeting.title|urlencode }}%20-%20Join%20here%3A%20{{ invite_url|urlencode }}"
+             target="_blank" class="btn btn-success btn-sm"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+          <a href="mailto:?subject={{ meeting.title|urlencode }}&body=Join%20the%20meeting%3A%20{{ invite_url|urlencode }}"
+             class="btn btn-secondary btn-sm"><i class="fas fa-envelope"></i> Email</a>
+          <button onclick="copyLink()" class="btn btn-secondary btn-sm"><i class="fas fa-clipboard"></i> Copy Link</button>
+        </div>
+      </div>
+
+      <!-- Join now -->
+      <a href="{% url 'teams:schedule_join' meeting.token %}" class="btn btn-success" style="width:100%;justify-content:center;padding:14px;font-size:1rem;">
+        <i class="fas fa-video"></i> Join Meeting Now
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function copyLink() {
+  const input = document.getElementById('invite-url');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    btn.style.background = 'var(--green)';
+    setTimeout(() => {
+      btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+      btn.style.background = '';
+    }, 2000);
+  });
+}
+</script>
+{% endblock %}

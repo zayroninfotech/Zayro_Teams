@@ -92,3 +92,21 @@ class CallSession(models.Model):
     team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(null=True, blank=True)
+
+
+class ScheduledMeeting(models.Model):
+    token = models.UUIDField(default=uuid.uuid4, unique=True)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    scheduled_at = models.DateTimeField()
+    call_type = models.CharField(max_length=10, choices=[('video', 'Video'), ('audio', 'Audio')], default='video')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='scheduled_meetings')
+    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
+    room_id = models.UUIDField(default=uuid.uuid4, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['scheduled_at']
+
+    def __str__(self):
+        return f"{self.title} @ {self.scheduled_at}"

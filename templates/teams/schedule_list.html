@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Scheduling — Zayro Teams{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include 'teams/_sidebar.html' %}
+  <div class="main-content">
+    <div class="content-header">
+      <i class="fas fa-calendar-alt" style="color:var(--accent)"></i>
+      <h2>Scheduling</h2>
+      <div style="margin-left:auto;">
+        <a href="{% url 'teams:schedule_create' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Meeting</a>
+      </div>
+    </div>
+    <div class="content-body">
+      {% if meetings %}
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        {% for m in meetings %}
+        <div class="card" style="display:flex;align-items:center;gap:16px;padding:16px 20px;">
+          <div style="width:56px;height:56px;background:rgba(88,101,242,.2);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="font-size:.7rem;color:var(--accent);font-weight:700;text-transform:uppercase;">{{ m.scheduled_at|date:"M" }}</span>
+            <span style="font-size:1.3rem;font-weight:700;color:var(--white);line-height:1;">{{ m.scheduled_at|date:"d" }}</span>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:1rem;font-weight:600;color:var(--white);">{{ m.title }}</div>
+            <div style="font-size:.8rem;color:var(--muted);margin-top:2px;">
+              <i class="fas fa-clock"></i> {{ m.scheduled_at|date:"D, d M Y • H:i" }}
+              &nbsp;·&nbsp;
+              {% if m.call_type == 'video' %}<i class="fas fa-video"></i> Video{% else %}<i class="fas fa-phone"></i> Audio{% endif %}
+              {% if m.team %}&nbsp;·&nbsp;<i class="fas fa-users"></i> {{ m.team.name }}{% endif %}
+            </div>
+            {% if m.description %}<div style="font-size:.85rem;color:var(--muted);margin-top:4px;">{{ m.description|truncatechars:80 }}</div>{% endif %}
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <a href="{% url 'teams:schedule_detail' m.token %}" class="btn btn-primary btn-sm"><i class="fas fa-link"></i> Invite Link</a>
+            <a href="{% url 'teams:schedule_join' m.token %}" class="btn btn-success btn-sm"><i class="fas fa-video"></i> Join</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card" style="text-align:center;padding:60px;">
+        <i class="fas fa-calendar-alt" style="font-size:3rem;color:var(--muted);margin-bottom:16px;display:block;"></i>
+        <p class="text-muted" style="margin-bottom:20px;">No meetings scheduled yet.</p>
+        <a href="{% url 'teams:schedule_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Schedule a Meeting</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
