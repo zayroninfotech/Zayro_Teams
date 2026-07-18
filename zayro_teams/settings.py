@@ -6,7 +6,7 @@ SECRET_KEY = 'django-insecure-_x=369j=d2#0yv&$-3c%=is#^(q6#5#$kp8v4g*e6$bz9ds$0u
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*', '187.127.131.93', 'localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -97,5 +97,3 @@ LOGIN_REDIRECT_URL = '/teams/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-STATIC_URL = '/static/'
