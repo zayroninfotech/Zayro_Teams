@@ -61,7 +61,8 @@
 <script>
 const channelId = {{ channel.pk }};
 const currentUser = { id: {{ request.user.pk }}, name: "{{ request.user.display_name }}" };
-const ws = new WebSocket(`ws://${location.host}/ws/channel/${channelId}/`);
+const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+const ws = new WebSocket(`${wsProto}://${location.host}/ws/channel/${channelId}/`);
 const list = document.getElementById('msg-list');
 const input = document.getElementById('msg-input');
 
