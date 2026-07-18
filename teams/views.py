@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Max
 from django.utils import timezone
+from django.conf import settings as django_settings
 from .models import Team, TeamMember, Channel, Message, DirectMessage, CallSession, ScheduledMeeting
 from accounts.models import User, Invitation
 from accounts.forms import InviteForm
@@ -80,7 +81,8 @@ def invite_member(request, team_pk):
     if request.method == 'POST' and form.is_valid():
         email = form.cleaned_data['email']
         invite = Invitation.objects.create(email=email, invited_by=request.user, team=team)
-        invite_url = request.build_absolute_uri(f'/accounts/invite/{invite.token}/')
+        base = getattr(django_settings, 'SITE_URL', request.build_absolute_uri('/').rstrip('/'))
+        invite_url = f"{base}/accounts/invite/{invite.token}/"
         messages.success(request, f'Invitation sent to {email}. Link: {invite_url}')
         return redirect('teams:team_detail', pk=team_pk)
     return render(request, 'teams/invite.html', {'form': form, 'team': team})
@@ -148,7 +150,8 @@ def schedule_create(request):
 @login_required
 def schedule_detail(request, token):
     meeting = get_object_or_404(ScheduledMeeting, token=token)
-    invite_url = request.build_absolute_uri(f'/teams/schedule/join/{meeting.token}/')
+    base = getattr(django_settings, 'SITE_URL', request.build_absolute_uri('/').rstrip('/'))
+    invite_url = f"{base}/teams/schedule/join/{meeting.token}/"
     return render(request, 'teams/schedule_detail.html', {'meeting': meeting, 'invite_url': invite_url})
 
 
