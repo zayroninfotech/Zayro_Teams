@@ -71,6 +71,27 @@ const statusBar = document.getElementById('status-bar');
 const iceConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
 async function init() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    statusBar.style.display = 'flex';
+    statusBar.style.background = 'rgba(242,63,66,.15)';
+    statusBar.style.border = '1px solid var(--red)';
+    statusBar.style.borderRadius = '8px';
+    statusBar.style.maxWidth = '560px';
+    statusBar.style.padding = '12px 16px';
+    statusBar.innerHTML = `
+      <div>
+        <div style="color:#ff7070;font-weight:600;margin-bottom:6px;">
+          <i class="fas fa-exclamation-triangle"></i> Camera/Mic blocked (HTTP not secure)
+        </div>
+        <div style="font-size:.82rem;color:var(--muted);line-height:1.6;">
+          Browser blocks camera on HTTP. To fix in Chrome/Edge:<br>
+          1. Open <b style="color:var(--accent)">chrome://flags/#unsafely-treat-insecure-origin-as-secure</b><br>
+          2. Add <b style="color:var(--white)">http://187.127.131.93:8030</b> and set to <b>Enabled</b><br>
+          3. Click <b>Relaunch</b> and rejoin the meeting
+        </div>
+      </div>`;
+    return;
+  }
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
     addStream(localStream, guestName, true);
