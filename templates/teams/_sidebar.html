@@ -1,0 +1,43 @@
+<div class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-header">Teams <a href="{% url 'teams:team_create' %}" style="color:var(--muted);font-size:1rem;"><i class="fas fa-plus"></i></a></div>
+    {% for team in request.user.teams.all %}
+    <a href="{% url 'teams:team_detail' team.pk %}" class="sidebar-item {% if active_team.pk == team.pk %}active{% endif %}">
+      {% if team.avatar %}<img src="{{ team.avatar.url }}" class="avatar">
+      {% else %}<div class="avatar" style="font-size:.75rem;">{{ team.name|first|upper }}</div>{% endif %}
+      <span>{{ team.name }}</span>
+    </a>
+    {% empty %}
+    <div class="sidebar-item text-muted" style="font-size:.8rem;">No teams yet</div>
+    {% endfor %}
+  </div>
+
+  <hr class="divider">
+
+  <div class="sidebar-section">
+    <div class="sidebar-header">Direct Messages</div>
+    {% for item in dm_sidebar %}
+    <a href="{% url 'teams:dm' item.user.pk %}" class="sidebar-item">
+      <div style="position:relative;">
+        {% if item.user.avatar %}<img src="{{ item.user.avatar.url }}" class="avatar">
+        {% else %}<div class="avatar">{{ item.user.display_name|first|upper }}</div>{% endif %}
+        {% if item.user.is_online %}<div class="online-dot" style="position:absolute;bottom:-1px;right:-1px;"></div>{% endif %}
+      </div>
+      <span>{{ item.user.display_name }}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  <hr class="divider">
+
+  <div class="sidebar-section" style="margin-top:auto;">
+    <a href="{% url 'accounts:profile' %}" class="sidebar-item">
+      {% if request.user.avatar %}<img src="{{ request.user.avatar.url }}" class="avatar">
+      {% else %}<div class="avatar">{{ request.user.display_name|first|upper }}</div>{% endif %}
+      <div>
+        <div style="font-size:.85rem;color:var(--white);">{{ request.user.display_name }}</div>
+        <div style="font-size:.75rem;color:var(--green);">● Online</div>
+      </div>
+    </a>
+  </div>
+</div>

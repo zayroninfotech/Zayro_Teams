@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}{{ team.name }} — Zayro Teams{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% with active_team=team %}{% include 'teams/_sidebar.html' %}{% endwith %}
+
+  <!-- Channel list sidebar -->
+  <div class="sidebar" style="width:200px;border-right:1px solid var(--border);">
+    <div class="sidebar-section">
+      <div class="sidebar-header" style="flex-direction:column;align-items:flex-start;gap:4px;">
+        <span>{{ team.name }}</span>
+        <a href="{% url 'teams:invite_member' team.pk %}" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;margin-top:4px;">
+          <i class="fas fa-user-plus"></i> Invite
+        </a>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-header">Channels</div>
+      {% for ch in channels %}
+      <a href="{% url 'teams:channel' team.pk ch.pk %}" class="sidebar-item">
+        {% if ch.channel_type == 'voice' %}<i class="fas fa-volume-up"></i>{% else %}<i class="fas fa-hashtag"></i>{% endif %}
+        {{ ch.name }}
+      </a>
+      {% endfor %}
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-header">Members ({{ members.count }})</div>
+      {% for m in members %}
+      <a href="{% url 'teams:dm' m.user.pk %}" class="sidebar-item">
+        <div style="position:relative;">
+          {% if m.user.avatar %}<img src="{{ m.user.avatar.url }}" class="avatar" style="width:24px;height:24px;">
+          {% else %}<div class="avatar" style="width:24px;height:24px;font-size:.65rem;">{{ m.user.display_name|first|upper }}</div>{% endif %}
+          {% if m.user.is_online %}<div class="online-dot" style="position:absolute;bottom:-1px;right:-1px;width:8px;height:8px;"></div>{% endif %}
+        </div>
+        <span style="flex:1;">{{ m.user.display_name }}</span>
+        {% if m.role == 'admin' %}<span class="badge badge-admin">admin</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="content-header">
+      <i class="fas fa-layer-group" style="color:var(--accent)"></i>
+      <h2>{{ team.name }}</h2>
+      {% if team.description %}<span class="text-muted" style="font-size:.85rem;">— {{ team.description }}</span>{% endif %}
+    </div>
+    <div class="content-body" style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <h3 style="color:var(--white);margin-bottom:12px;"><i class="fas fa-hashtag" style="color:var(--accent)"></i> Text Channels</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          {% for ch in channels %}{% if ch.channel_type == 'text' %}
+          <a href="{% url 'teams:channel' team.pk ch.pk %}" class="btn btn-secondary"><i class="fas fa-hashtag"></i> {{ ch.name }}</a>
+          {% endif %}{% endfor %}
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--white);margin-bottom:12px;"><i class="fas fa-video" style="color:var(--green)"></i> Start a Call</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          {% for m in members %}{% if m.user != request.user %}
+          <a href="{% url 'teams:start_call' m.user.pk %}?type=video" class="btn btn-success btn-sm">
+            <i class="fas fa-video"></i> Video with {{ m.user.display_name }}
+          </a>
+          <a href="{% url 'teams:start_call' m.user.pk %}?type=audio" class="btn btn-secondary btn-sm">
+            <i class="fas fa-phone"></i> Audio with {{ m.user.display_name }}
+          </a>
+          {% endif %}{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

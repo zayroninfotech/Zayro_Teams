@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Profile — Zayro Teams{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% include 'teams/_sidebar.html' %}
+  <div class="main-content">
+    <div class="content-header">
+      <i class="fas fa-user" style="color:var(--accent)"></i>
+      <h2>My Profile</h2>
+    </div>
+    <div class="content-body" style="max-width:520px;">
+      <div class="card">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+            {% if user.avatar %}
+            <img src="{{ user.avatar.url }}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">
+            {% else %}
+            <div class="avatar" style="width:64px;height:64px;font-size:1.4rem;">{{ user.display_name|first|upper }}</div>
+            {% endif %}
+            <div>
+              <div class="text-white" style="font-weight:600;">{{ user.display_name }}</div>
+              <div class="text-muted" style="font-size:.85rem;">{{ user.email }}</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label>First Name</label>
+              <input type="text" name="first_name" value="{{ user.first_name }}">
+            </div>
+            <div class="form-group">
+              <label>Last Name</label>
+              <input type="text" name="last_name" value="{{ user.last_name }}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" name="username" value="{{ user.username }}">
+          </div>
+          <div class="form-group">
+            <label>Bio</label>
+            <textarea name="bio" placeholder="Tell your team about yourself...">{{ user.bio }}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Avatar</label>
+            <input type="file" name="avatar" accept="image/*" style="padding:8px;">
+          </div>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

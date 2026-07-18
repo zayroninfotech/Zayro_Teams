@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Zayro Teams{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% with dm_sidebar=dm_users %}{% include 'teams/_sidebar.html' %}{% endwith %}
+  <div class="main-content">
+    <div class="content-header">
+      <i class="fas fa-home" style="color:var(--accent)"></i>
+      <h2>Dashboard</h2>
+      <div style="margin-left:auto;">
+        <a href="{% url 'teams:team_create' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Team</a>
+      </div>
+    </div>
+    <div class="content-body">
+      <h3 style="margin-bottom:16px;color:var(--white);">Your Teams</h3>
+      <div class="team-grid">
+        {% for team in teams %}
+        <a href="{% url 'teams:team_detail' team.pk %}" class="team-card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            {% if team.avatar %}<img src="{{ team.avatar.url }}" class="avatar" style="width:40px;height:40px;">
+            {% else %}<div class="avatar" style="width:40px;height:40px;font-size:1rem;">{{ team.name|first|upper }}</div>{% endif %}
+            <h3>{{ team.name }}</h3>
+          </div>
+          <p>{{ team.description|default:"No description" }}</p>
+          <div style="margin-top:12px;font-size:.8rem;color:var(--muted);">
+            <i class="fas fa-users"></i> {{ team.members.count }} members &nbsp;
+            <i class="fas fa-hashtag"></i> {{ team.channels.count }} channels
+          </div>
+        </a>
+        {% empty %}
+        <div class="card" style="grid-column:1/-1;text-align:center;padding:40px;">
+          <i class="fas fa-layer-group" style="font-size:2.5rem;color:var(--muted);margin-bottom:16px;"></i>
+          <p class="text-muted">You're not in any team yet.</p>
+          <a href="{% url 'teams:team_create' %}" class="btn btn-primary mt-4">Create your first team</a>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if dm_users %}
+      <h3 style="margin:32px 0 16px;color:var(--white);">Recent Direct Messages</h3>
+      <div class="card" style="padding:8px;">
+        {% for item in dm_users %}
+        <a href="{% url 'teams:dm' item.user.pk %}" class="user-list-item">
+          <div style="position:relative;">
+            {% if item.user.avatar %}<img src="{{ item.user.avatar.url }}" class="avatar">
+            {% else %}<div class="avatar">{{ item.user.display_name|first|upper }}</div>{% endif %}
+            {% if item.user.is_online %}<div class="online-dot" style="position:absolute;bottom:-1px;right:-1px;"></div>{% endif %}
+          </div>
+          <div style="flex:1;">
+            <div class="name">{{ item.user.display_name }}</div>
+            <div class="status">{{ item.last_msg.content|truncatechars:40 }}</div>
+          </div>
+          <div style="font-size:.75rem;color:var(--muted);">{{ item.last_msg.created_at|timesince }} ago</div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

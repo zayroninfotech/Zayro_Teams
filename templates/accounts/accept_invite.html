@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Accept Invitation — Zayro Teams{% endblock %}
+{% block body %}
+<div class="auth-page">
+  <div class="auth-card" style="text-align:center;">
+    <h1><i class="fas fa-envelope-open-text" style="color:var(--accent)"></i></h1>
+    <h1 style="margin-top:12px;">You're Invited!</h1>
+    <p class="subtitle">
+      <strong>{{ invite.invited_by.display_name }}</strong> has invited you
+      {% if invite.team %}to join <strong>{{ invite.team.name }}</strong>{% endif %}
+      on Zayro Teams.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:24px;">
+      <a href="{% url 'accounts:register' %}" class="btn btn-primary"><i class="fas fa-user-plus"></i> Create Account & Join</a>
+      <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-secondary"><i class="fas fa-sign-in-alt"></i> Login & Join</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

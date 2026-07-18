@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}#{{ channel.name }} — {{ team.name }}{% endblock %}
+{% block body %}
+<div class="app-layout">
+  {% with active_team=team %}{% include 'teams/_sidebar.html' %}{% endwith %}
+
+  <div class="sidebar" style="width:200px;border-right:1px solid var(--border);">
+    <div class="sidebar-section">
+      <div class="sidebar-header">{{ team.name }}</div>
+      {% for ch in team.channels.all %}
+      <a href="{% url 'teams:channel' team.pk ch.pk %}" class="sidebar-item {% if ch.pk == channel.pk %}active{% endif %}">
+        {% if ch.channel_type == 'voice' %}<i class="fas fa-volume-up"></i>{% else %}<i class="fas fa-hashtag"></i>{% endif %}
+        {{ ch.name }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="content-header">
+      <i class="fas fa-hashtag" style="color:var(--accent)"></i>
+      <h2>{{ channel.name }}</h2>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        {% for m in team.members.all %}{% if m != request.user %}
+        <a href="{% url 'teams:start_call' m.pk %}?type=video" class="btn btn-success btn-sm" title="Video call with {{ m.display_name }}"><i class="fas fa-video"></i></a>
+        <a href="{% url 'teams:start_call' m.pk %}?type=audio" class="btn btn-secondary btn-sm" title="Audio call with {{ m.display_name }}"><i class="fas fa-phone"></i></a>
+        {% endif %}{% endfor %}
+      </div>
+    </div>
+
+    <div class="msg-list content-body" id="msg-list">
+      {% for msg in messages %}
+      <div class="msg">
+        {% if msg.sender.avatar %}<img src="{{ msg.sender.avatar.url }}" class="avatar">
+        {% else %}<div class="avatar">{{ msg.sender.display_name|first|upper }}</div>{% endif %}
+        <div class="msg-body">
+          <div class="msg-meta">
+            <span class="msg-sender">{{ msg.sender.display_name }}</span>
+            <span class="msg-time">{{ msg.created_at|date:"H:i" }}</span>
+          </div>
+          <div class="msg-content">{{ msg.content }}</div>
+        </div>
+      </div>
+      {% empty %}
+      <div style="text-align:center;padding:40px;color:var(--muted);">
+        <i class="fas fa-hashtag" style="font-size:2rem;margin-bottom:12px;"></i>
+        <p>No messages yet. Say hello!</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="msg-input-area">
+      <div class="msg-input-wrap">
+        <input type="text" id="msg-input" placeholder="Message #{{ channel.name }}" autocomplete="off">
+        <button onclick="sendMessage()" title="Send"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const channelId = {{ channel.pk }};
+const currentUser = { id: {{ request.user.pk }}, name: "{{ request.user.display_name }}" };
+const ws = new WebSocket(`ws://${location.host}/ws/channel/${channelId}/`);
+const list = document.getElementById('msg-list');
+const input = document.getElementById('msg-input');
+
+ws.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+  if (data.type === 'chat_message') appendMessage(data);
+};
+
+function appendMessage(data) {
+  const div = document.createElement('div');
+  div.className = 'msg';
+  div.innerHTML = `
+    <div class="avatar">${data.sender[0].toUpperCase()}</div>
+    <div class="msg-body">
+      <div class="msg-meta">
+        <span class="msg-sender">${data.sender}</span>
+        <span class="msg-time">${data.timestamp}</span>
+      </div>
+      <div class="msg-content">${escHtml(data.message)}</div>
+    </div>`;
+  list.appendChild(div);
+  list.scrollTop = list.scrollHeight;
+}
+
+function sendMessage() {
+  const msg = input.value.trim();
+  if (!msg) return;
+  ws.send(JSON.stringify({ message: msg }));
+  input.value = '';
+}
+
+input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+window.onload = () => { list.scrollTop = list.scrollHeight; };
+</script>
+{% endblock %}
