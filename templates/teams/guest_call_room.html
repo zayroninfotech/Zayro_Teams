@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Room — Zayro Teams</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root { --bg:#111; --card-bg:#1e1f22; --accent:#5865f2; --green:#23a559; --red:#f23f42; --border:#3f4147; --white:#ffffff; --muted:#80848e; --text:#dbdee1; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Segoe UI',sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+  .topbar { background:rgba(0,0,0,.6); border-bottom:1px solid var(--border); padding:0 20px; height:52px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+  .topbar .brand { color:var(--white); font-weight:700; display:flex; align-items:center; gap:8px; }
+  .topbar .brand i { color:var(--accent); }
+  .topbar .guest-badge { background:rgba(88,101,242,.2); border:1px solid rgba(88,101,242,.4); border-radius:20px; padding:4px 12px; font-size:.8rem; color:#c9d0ff; }
+  .video-grid { flex:1; display:grid; gap:8px; padding:16px; overflow:hidden; }
+  .video-wrap { position:relative; border-radius:12px; overflow:hidden; background:#1a1b1e; min-height:180px; }
+  .video-wrap video { width:100%; height:100%; object-fit:cover; display:block; }
+  .video-wrap audio { display:none; }
+  .video-label { position:absolute; bottom:10px; left:12px; background:rgba(0,0,0,.65); padding:4px 10px; border-radius:20px; font-size:.8rem; color:#fff; }
+  .call-controls { height:88px; display:flex; align-items:center; justify-content:center; gap:16px; background:rgba(0,0,0,.7); border-top:1px solid var(--border); flex-shrink:0; }
+  .ctrl-btn { width:52px; height:52px; border-radius:50%; border:none; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center; transition:all .2s; }
+  .ctrl-btn.mute-btn { background:var(--border); color:#fff; }
+  .ctrl-btn.mute-btn.muted { background:var(--red); }
+  .ctrl-btn.cam-btn { background:var(--border); color:#fff; }
+  .ctrl-btn.cam-btn.off { background:var(--red); }
+  .ctrl-btn.hangup-btn { background:var(--red); color:#fff; width:64px; height:64px; font-size:1.4rem; }
+  .status-bar { position:fixed; top:60px; left:50%; transform:translateX(-50%); background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:6px 16px; font-size:.85rem; color:var(--muted); z-index:100; display:flex; align-items:center; gap:8px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><i class="fas fa-layer-group"></i> Zayro Teams</div>
+  <div class="guest-badge"><i class="fas fa-user"></i> {{ guest_name }} (Guest)</div>
+</div>
+
+<div id="status-bar" class="status-bar"><i class="fas fa-circle-notch fa-spin"></i> Connecting...</div>
+
+<div class="video-grid" id="video-grid"></div>
+
+<div class="call-controls">
+  <button class="ctrl-btn mute-btn" id="mute-btn" onclick="toggleMute()" title="Mute/Unmute">
+    <i class="fas fa-microphone" id="mute-icon"></i>
+  </button>
+  {% if call_type == 'video' %}
+  <button class="ctrl-btn cam-btn" id="cam-btn" onclick="toggleCam()" title="Camera on/off">
+    <i class="fas fa-video" id="cam-icon"></i>
+  </button>
+  {% endif %}
+  <button class="ctrl-btn hangup-btn" onclick="hangUp()" title="Leave Call">
+    <i class="fas fa-phone-slash"></i>
+  </button>
+</div>
+
+<script>
+const roomId = "{{ room_id }}";
+const isVideo = "{{ call_type }}" === "video";
+const guestName = "{{ guest_name }}";
+const guestId = 'guest_' + Math.random().toString(36).substr(2, 9);
+
+let localStream = null;
+let peers = {};
+let isMuted = false;
+let isCamOff = false;
+
+const ws = new WebSocket(`ws://${location.host}/ws/call/${roomId}/`);
+const grid = document.getElementById('video-grid');
+const statusBar = document.getElementById('status-bar');
+const iceConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+async function init() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+    addStream(localStream, guestName, true);
+    statusBar.innerHTML = '<i class="fas fa-check-circle" style="color:var(--green)"></i> Connected';
+    setTimeout(() => statusBar.style.display = 'none', 3000);
+  } catch (e) {
+    statusBar.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:var(--red)"></i> ' + e.message;
+  }
+}
+
+function addStream(stream, label, isSelf) {
+  const wrap = document.createElement('div');
+  wrap.className = 'video-wrap';
+  wrap.id = 'stream-' + label.replace(/\s/g, '_');
+  const media = document.createElement(isVideo ? 'video' : 'audio');
+  media.srcObject = stream;
+  media.autoplay = true;
+  if (isSelf && isVideo) media.muted = true;
+  const lbl = document.createElement('div');
+  lbl.className = 'video-label';
+  lbl.textContent = label + (isSelf ? ' (You)' : '');
+  wrap.appendChild(media);
+  if (isVideo) wrap.appendChild(lbl);
+  grid.appendChild(wrap);
+}
+
+async function createPeer(userId, userName, isInitiator) {
+  const pc = new RTCPeerConnection(iceConfig);
+  peers[userId] = { pc, name: userName };
+  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  pc.onicecandidate = (e) => {
+    if (e.candidate) ws.send(JSON.stringify({ signal_type: 'ice', to: userId, candidate: e.candidate }));
+  };
+  pc.ontrack = (e) => {
+    const existing = document.getElementById('stream-' + userName.replace(/\s/g, '_'));
+    if (!existing) addStream(e.streams[0], userName, false);
+  };
+  if (isInitiator) {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    ws.send(JSON.stringify({ signal_type: 'offer', to: userId, sdp: offer, from_name: guestName }));
+  }
+  return pc;
+}
+
+ws.onmessage = async (e) => {
+  const data = JSON.parse(e.data);
+  const fromId = data.from_user || data.user_id;
+  if (data.signal_type === 'user_joined' && fromId !== guestId) {
+    statusBar.style.display = 'flex';
+    statusBar.innerHTML = `<i class="fas fa-user-plus" style="color:var(--green)"></i> ${data.user_name} joined`;
+    setTimeout(() => statusBar.style.display = 'none', 3000);
+    await createPeer(fromId, data.user_name, true);
+  }
+  if (data.signal_type === 'offer' && fromId !== guestId) {
+    const pc = await createPeer(fromId, data.from_name, false);
+    await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    ws.send(JSON.stringify({ signal_type: 'answer', to: fromId, sdp: answer }));
+  }
+  if (data.signal_type === 'answer' && peers[fromId]) {
+    await peers[fromId].pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+  }
+  if (data.signal_type === 'ice' && peers[fromId] && data.candidate) {
+    await peers[fromId].pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+  }
+  if (data.signal_type === 'user_left' && fromId !== guestId) {
+    if (peers[fromId]) { peers[fromId].pc.close(); delete peers[fromId]; }
+    const el = document.getElementById('stream-' + (data.user_name || '').replace(/\s/g, '_'));
+    if (el) el.remove();
+    statusBar.style.display = 'flex';
+    statusBar.innerHTML = `<i class="fas fa-user-minus" style="color:var(--red)"></i> ${data.user_name} left`;
+    setTimeout(() => statusBar.style.display = 'none', 3000);
+  }
+};
+
+function toggleMute() {
+  isMuted = !isMuted;
+  localStream?.getAudioTracks().forEach(t => t.enabled = !isMuted);
+  document.getElementById('mute-btn').classList.toggle('muted', isMuted);
+  document.getElementById('mute-icon').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
+}
+
+function toggleCam() {
+  isCamOff = !isCamOff;
+  localStream?.getVideoTracks().forEach(t => t.enabled = !isCamOff);
+  document.getElementById('cam-btn').classList.toggle('off', isCamOff);
+  document.getElementById('cam-icon').className = isCamOff ? 'fas fa-video-slash' : 'fas fa-video';
+}
+
+function hangUp() {
+  localStream?.getTracks().forEach(t => t.stop());
+  Object.values(peers).forEach(p => p.pc.close());
+  ws.close();
+  window.location.href = '/';
+}
+
+init();
+</script>
+</body>
+</html>

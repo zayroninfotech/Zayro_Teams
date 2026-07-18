@@ -157,19 +157,37 @@ def schedule_detail(request, token):
 
 def schedule_join(request, token):
     meeting = get_object_or_404(ScheduledMeeting, token=token)
-    if not request.user.is_authenticated:
-        request.session['join_meeting'] = str(token)
-        return redirect(f'/accounts/login/?next=/teams/schedule/join/{token}/')
-    session, _ = CallSession.objects.get_or_create(
-        room_id=meeting.room_id,
-        defaults={
-            'call_type': meeting.call_type,
-            'initiator': request.user,
-            'status': CallSession.STATUS_ACTIVE,
-        }
-    )
-    session.participants.add(request.user)
-    return redirect('teams:call_room', room_id=meeting.room_id)
+
+    # Authenticated user — join directly
+    if request.user.is_authenticated:
+        session, _ = CallSession.objects.get_or_create(
+            room_id=meeting.room_id,
+            defaults={
+                'call_type': meeting.call_type,
+                'initiator': request.user,
+                'status': CallSession.STATUS_ACTIVE,
+            }
+        )
+        session.participants.add(request.user)
+        return redirect('teams:call_room', room_id=meeting.room_id)
+
+    # Guest POST — store name in session and go to guest call room
+    if request.method == 'POST':
+        guest_name = request.POST.get('guest_name', '').strip() or 'Guest'
+        request.session['guest_name'] = guest_name
+        return redirect('teams:guest_call_room', room_id=meeting.room_id, call_type=meeting.call_type)
+
+    # Guest GET — show name entry page
+    return render(request, 'teams/schedule_guest_join.html', {'meeting': meeting})
+
+
+def guest_call_room(request, room_id, call_type):
+    guest_name = request.session.get('guest_name', 'Guest')
+    return render(request, 'teams/guest_call_room.html', {
+        'room_id': str(room_id),
+        'call_type': call_type,
+        'guest_name': guest_name,
+    })
 
 
 @login_required
