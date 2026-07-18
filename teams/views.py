@@ -160,11 +160,13 @@ def schedule_join(request, token):
     if not request.user.is_authenticated:
         request.session['join_meeting'] = str(token)
         return redirect(f'/accounts/login/?next=/teams/schedule/join/{token}/')
-    session = CallSession.objects.create(
+    session, _ = CallSession.objects.get_or_create(
         room_id=meeting.room_id,
-        call_type=meeting.call_type,
-        initiator=request.user,
-        status=CallSession.STATUS_ACTIVE,
+        defaults={
+            'call_type': meeting.call_type,
+            'initiator': request.user,
+            'status': CallSession.STATUS_ACTIVE,
+        }
     )
     session.participants.add(request.user)
     return redirect('teams:call_room', room_id=meeting.room_id)
