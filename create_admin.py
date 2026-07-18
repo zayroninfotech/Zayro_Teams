@@ -1,9 +1,27 @@
 import django, os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'zayro_teams.settings')
 django.setup()
+
 from accounts.models import User
-if not User.objects.filter(email='admin@zayro.com').exists():
-    User.objects.create_superuser(email='admin@zayro.com', username='admin', password='Admin@123', first_name='Admin', last_name='User')
-    print('Superuser created: admin@zayro.com / Admin@123')
+
+# Read credentials from environment (set before running this script)
+username = os.environ.get('ADMIN_USERNAME', 'superadmin')
+email    = os.environ.get('ADMIN_EMAIL', 'superadmin@zayro.com')
+password = os.environ.get('ADMIN_PASSWORD')
+
+if not password:
+    raise SystemExit("ERROR: Set ADMIN_PASSWORD environment variable before running this script.")
+
+if not User.objects.filter(username=username).exists():
+    User.objects.create_superuser(
+        email=email,
+        username=username,
+        password=password,
+        first_name='Super',
+        last_name='Admin'
+    )
+    print('Superuser created!')
+    print(f'  Username : {username}')
+    print(f'  Email    : {email}')
 else:
     print('Superuser already exists')
